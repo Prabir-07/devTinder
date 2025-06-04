@@ -65,15 +65,13 @@ app.delete("/user", async (req, res) => {
 })
 
 
-app.put("/user", async (req, res) => {
+app.patch("/user", async (req, res) => {
 
-    // Get the user's id from the request body and the updated user data from the request body
     const userId =  req.body.userId;
     const updatedUserData = req.body;
 
-    // Update the user in the DB with the updated user data by their id
     try {
-        const user = await User.findByIdAndUpdate(userId, updatedUserData, {new: true});
+        const user = await User.findByIdAndUpdate(userId, updatedUserData, {new: true, runValidators: true, context: 'query'  });
         if(!user) {
             return res.status(404).send("User not found");
         }
