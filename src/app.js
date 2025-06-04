@@ -65,12 +65,24 @@ app.delete("/user", async (req, res) => {
 })
 
 
-app.patch("/user", async (req, res) => {
+app.patch("/user/:userId", async (req, res) => {
 
-    const userId =  req.body.userId;
+    const userId =  req.params?.userId;
     const updatedUserData = req.body;
+    
 
     try {
+        const UPDATES_ALLOWED = ['password', 'age', 'gender','skills', 'photoUrl', 'about'];
+        const updates = Object.keys(updatedUserData).every(key => UPDATES_ALLOWED.includes(key));
+
+        if(!updates) {
+            return res.status(400).send("Invalid updates");
+        }
+
+        if(updatedUserData?.skills?.length > 10) {
+            throw new Error("Skills cannot exceed 10");
+        }
+
         const user = await User.findByIdAndUpdate(userId, updatedUserData, {new: true, runValidators: true, context: 'query'  });
         if(!user) {
             return res.status(404).send("User not found");
@@ -78,6 +90,7 @@ app.patch("/user", async (req, res) => {
         res.send("User updated successfully");
     } catch (error) {
         console.error("error updating the user: " + error.message);
+        res.send(error.message);
     }
 })
 
