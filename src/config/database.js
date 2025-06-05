@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 
-
 // Connect to MongoDB
 
 const URL = "mongodb+srv://namasteDev:cchqhg1XSKqGVgpc@namastenode.ctrtrwf.mongodb.net/devTinder";
