@@ -2,21 +2,54 @@ const express = require('express');
 const connectDB = require('./config/database');
 const app = express();
 const User = require('./models/user');
+const { validateSignupData } = require('./utils/validation');
+const bcrypt = require('bcrypt');
 
 app.use(express.json());
 
 app.post("/signup", async (req, res) => {
-
-    // Create a new User object from the request body
-    const user = new User(req.body);
-
+    
     try {
+        validateSignupData(req); 
+
+        const {password} = req.body;
+        const hashedPassword = await bcrypt.hash(password, 10);
+        req.body.password = hashedPassword;
+
+        const user = new User(req.body);
+
         await user.save();
         res.send("User added to DB successfully");
     } catch (error) {
-        console.error("error saving the user: " + error.message);   
+        console.error("error saving the user: " + error.message);
+        res.send("Failed to add user to DB " + error.message);
     }
 
+})
+
+
+app.post("/login", async (req, res) => {
+    
+    try {
+        const { userEmail, userPassword }  = req.body;
+
+        const user =  await User.findOne({emailId : userEmail});
+        if(!user) {
+            throw new Error("Invalid credentials");
+        }
+    
+        const hashedPassword = user.password;
+        const isPasswordMatching =  await bcrypt.compare(userPassword, hashedPassword);
+        if(!isPasswordMatching) {
+            throw new Error("Invalid credentials");
+        }
+
+        res.send("User logged in successfully");
+    }
+    catch (error) {
+        console.error("error logging in the user: " + error.message);
+        res.send("Failed to login user: " + error.message);
+    }
 })
 
 
@@ -70,7 +103,6 @@ app.patch("/user/:userId", async (req, res) => {
     const userId =  req.params?.userId;
     const updatedUserData = req.body;
     
-
     try {
         const UPDATES_ALLOWED = ['password', 'age', 'gender','skills', 'photoUrl', 'about'];
         const updates = Object.keys(updatedUserData).every(key => UPDATES_ALLOWED.includes(key));
@@ -83,7 +115,7 @@ app.patch("/user/:userId", async (req, res) => {
             throw new Error("Skills cannot exceed 10");
         }
 
-        const user = await User.findByIdAndUpdate(userId, updatedUserData, {new: true, runValidators: true, context: 'query'  });
+        const user = await User.findByIdAndUpdate(userId, updatedUserData, {new: true, runValidators: true });
         if(!user) {
             return res.status(404).send("User not found");
         }
