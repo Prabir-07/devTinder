@@ -1,14 +1,51 @@
 const express = require('express');
 const connectDB = require('./config/database');
 const app = express();
-const User = require('./models/user');
+const { User } = require('./models/user');
 const { validateSignupData } = require('./utils/validation');
 const bcrypt = require('bcrypt');
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
+const { userAuth }  = require('./middleware/auth');
+
 
 app.use(express.json());
+app.use(cookieParser());
+
+
+app.post("/login", async (req, res) => {
+    const userEmail = req.body.emailId;
+    const userPassword  = req.body.password;
+
+    
+    try {
+        const user =  await User.findOne({emailId : userEmail});
+        if(!user) {
+            throw new Error("Invalid credentials");
+        }
+    
+        const isPasswordMatching =  await user.comparePassword(userPassword);
+        
+        if(isPasswordMatching) {
+
+            const token = await user.getJWT();
+            res.cookie('token', token);
+            res.send("User logged in successfully");
+        }
+        else {
+            throw new Error("Invalid credentials");
+        }
+
+    }
+    catch (error) {
+        console.error("error logging in the user: " + error.message);
+        res.send("Failed to login user: " + error.message);
+    }
+})
+
 
 app.post("/signup", async (req, res) => {
-    
+
     try {
         validateSignupData(req); 
 
@@ -28,37 +65,37 @@ app.post("/signup", async (req, res) => {
 })
 
 
-app.post("/login", async (req, res) => {
-    
+app.get("/profile", userAuth, async (req, res) => {
+
     try {
-        const { userEmail, userPassword }  = req.body;
-
-        const user =  await User.findOne({emailId : userEmail});
-        if(!user) {
-            throw new Error("Invalid credentials");
-        }
-    
-        const hashedPassword = user.password;
-        const isPasswordMatching =  await bcrypt.compare(userPassword, hashedPassword);
-        if(!isPasswordMatching) {
-            throw new Error("Invalid credentials");
-        }
-
-        res.send("User logged in successfully");
+        res.send(req.user);
     }
     catch (error) {
-        console.error("error logging in the user: " + error.message);
-        res.send("Failed to login user: " + error.message);
+        console.error("error verifying the token: " + error.message);
+        return res.status(403).send("Access denied: " + error.message);
     }
 })
 
 
-app.get("/user", async (req, res) => {
+app.post("/sendConnectionRequest", userAuth, async (req, res) => {
 
-    // Get the user's email from the request body
+    try {
+        const user = await User.findOne({_id: req.user._id});
+        console.log(`${user.firstName} is sending a connection request.`);
+        res.send(`${user.firstName} is sending a connection request.`);
+    }
+    catch (error) {
+        console.error("error sending the connection request: " + error.message);
+        res.send("Failed to send the connection request: " + error.message);
+    }
+})
+
+
+app.get("/user", userAuth, async (req, res) => {
+
+
     const userEmail = req.body.emailId;
 
-    // Find the user in the DB by their email
     try {
         const userData = await User.find({emailId: userEmail});
         if(userData.length === 0) {
