@@ -21,7 +21,15 @@ authRouter.post("/login", async (req, res) => {
 
             const token = await user.getJWT();
             res.cookie('token', token);
-            res.send("User logged in successfully");
+
+            const allowedFields = ['firstName', 'lastName', 'emailId', 'gender', 'about', 'photoUrl', 'age', 'skills'];
+            
+            const userToSend = user.toObject();
+            Object.keys(userToSend).forEach((feild) => {
+                if(!allowedFields.includes(feild)) delete userToSend[feild];
+            })
+
+            res.send(userToSend);
         }
         else {
             throw new Error("Invalid credentials");
@@ -46,7 +54,8 @@ authRouter.post("/signup", async (req, res) => {
         const user = new User(req.body);
 
         await user.save();
-        res.send("User added to DB successfully");
+        res.send(user);
+        console.log("User added to DB successfully");
     } catch (error) {
         console.error("error saving the user: " + error.message);
         res.send("Failed to add user to DB " + error.message);
