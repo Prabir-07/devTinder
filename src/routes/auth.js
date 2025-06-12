@@ -25,8 +25,8 @@ authRouter.post("/login", async (req, res) => {
             const allowedFields = ['firstName', 'lastName', 'emailId', 'gender', 'about', 'photoUrl', 'age', 'skills'];
             
             const userToSend = user.toObject();
-            Object.keys(userToSend).forEach((feild) => {
-                if(!allowedFields.includes(feild)) delete userToSend[feild];
+            Object.keys(userToSend).forEach((field) => {
+                if (!allowedFields.includes(field)) delete userToSend[field];
             })
 
             res.send(userToSend);

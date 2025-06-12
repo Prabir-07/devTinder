@@ -18,27 +18,54 @@ profileRouter.get("/profile/view", userAuth, async (req, res) => {
 
 
 profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
-    try {
-        if(!validateEditProfileData(req)) {
-            throw new Error("Invalid profile data");
-        }
+  try {
+    // Add detailed logging
+    console.log("Received data:", req.body);
 
-        const loggedInUser = req.user;
-
-        Object.keys(req.body).forEach((key) => (loggedInUser[key] = req.body[key]));
-
-        await loggedInUser.save();
-
-        res.json({
-            message: `${loggedInUser.firstName}, your profile updated successfully`,
-            updatedUser: loggedInUser,
-        });
-        
-    } catch (error) {
-        console.error("error updating user profile: " + error.message);
-        res.status(400).send("Failed to update user profile: " + error.message);
+    if (!validateEditProfileData(req)) {
+      console.log("Validation failed for:", req.body);
+      return res.status(400).json({
+        error: "Invalid profile data",
+        message: "Validation failed",
+      });
     }
-})
+
+    const loggedInUser = req.user;
+
+    // Validate that user exists
+    if (!loggedInUser) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    Object.keys(req.body).forEach((key) => (loggedInUser[key] = req.body[key]));
+
+    await loggedInUser.save();
+
+    const allowedFields = [
+      "firstName",
+      "lastName",
+      "emailId",
+      "gender",
+      "about",
+      "photoUrl",
+      "age",
+      "skills",
+    ];
+
+    const userToSend = loggedInUser.toObject();
+    Object.keys(userToSend).forEach((field) => {
+      if (!allowedFields.includes(field)) delete userToSend[field];
+    });
+
+    res.json(userToSend);
+  } catch (error) {
+    console.error("Error updating user profile:", error.message);
+    res.status(400).json({
+      error: "Failed to update user profile",
+      message: error.message,
+    });
+  }
+});
 
 
 module.exports = profileRouter;
