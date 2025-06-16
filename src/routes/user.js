@@ -10,7 +10,7 @@ userRouter.get("/user/requests/received", userAuth,  async (req, res) => {
         const connectionRequests =  await Connection.find({
             receiverId: loggedInUser._id,
             status: "interested"
-        }).populate("senderId", ["firstName", "lastName", "photoUrl", "skills", "about"]);
+        }).populate("senderId", ["firstName", "lastName", "photoUrl", "skills", "about", "age", "emailId", "gender"]);
 
         res.json({
             message: "User requests fetched successfully",
@@ -33,7 +33,7 @@ userRouter.get("/user/connections", userAuth,  async (req, res) => {
                 { receiverId: loggedInUser._id }
             ],
             status: "accepted"
-        }).populate("receiverId senderId", ["firstName", "lastName", "photoUrl", "skills", "about"])
+        }).populate("receiverId senderId", ["firstName", "lastName", "photoUrl", "skills", "about", "age", "gender", "emailId"])
 
 
         const response = connections.map((curr) => curr.senderId._id.equals(loggedInUser._id)? curr.receiverId : curr.senderId)
@@ -60,7 +60,7 @@ userRouter.get("/feed", userAuth, async (req, res) => {
         const loggedInUser = req.user;
 
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        let limit = parseInt(req.query.limit) || 10;
         limit = Math.min(limit, 50);
 
         const allUsers = await User.find({ _id: { $ne: loggedInUser._id } });
@@ -85,12 +85,7 @@ userRouter.get("/feed", userAuth, async (req, res) => {
         const endIndex = startIndex + limit;
         const usersToShow = usersWithNoConnection.slice(startIndex, endIndex);
 
-        res.json({
-            message: "User feed fetched successfully",
-            page,
-            totalResults: usersWithNoConnection.length,
-            users: usersToShow
-        });
+        res.json(usersToShow);
 
     } catch (error) {
         console.error("Error fetching user feed:", error.message);

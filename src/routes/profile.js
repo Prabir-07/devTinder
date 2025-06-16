@@ -17,9 +17,8 @@ profileRouter.get("/profile/view", userAuth, async (req, res) => {
 })
 
 
-profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
+profileRouter.put("/profile/edit", userAuth, async (req, res) => {
   try {
-    // Add detailed logging
     console.log("Received data:", req.body);
 
     if (!validateEditProfileData(req)) {
@@ -32,7 +31,6 @@ profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
 
     const loggedInUser = req.user;
 
-    // Validate that user exists
     if (!loggedInUser) {
       return res.status(401).json({ error: "User not authenticated" });
     }
