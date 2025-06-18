@@ -1,6 +1,9 @@
 const express = require('express');
 const { userAuth }  = require('../middleware/auth');
 const { validateEditProfileData } = require('../utils/validation');
+const { uploadOnCloudinary } = require('../utils/cloudinary');
+const { upload } = require('../middleware/multer');
+const { User } = require('../models/user');
 
 
 const profileRouter =  express.Router();
@@ -65,5 +68,27 @@ profileRouter.put("/profile/edit", userAuth, async (req, res) => {
   }
 });
 
+
+profileRouter.post("/profile/upload-photo", userAuth, upload.single('photoUrl'), async (req, res)=> {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const cloudinaryResponse = await uploadOnCloudinary(req.file.path);
+    if (!cloudinaryResponse) {
+      return res.status(500).json({ error: "Cloudinary upload failed" });
+    }
+
+    await User.findByIdAndUpdate(req.user._id, {
+      photoUrl: cloudinaryResponse.secure_url,
+    });
+
+    res.json({ photoUrl: cloudinaryResponse.secure_url });
+  } catch (error) {
+    console.error("Upload error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+})
 
 module.exports = profileRouter;
